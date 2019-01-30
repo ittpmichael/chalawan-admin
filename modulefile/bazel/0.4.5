@@ -1,0 +1,13 @@
+#%Module 1.0
+#
+#  bazel module for use with 'environment-modules' package:
+#
+# modulefiles/
+
+set	bazel_version	0.45
+set	BAZELDIR	/opt/bazel-0.4.5
+set	BAZEL_DIR 	bazel-0.4.5
+
+setenv	BAZELDIR		/opt/bazel-0.4.5
+
+prepend-path	PATH		$BAZELDIR/bin

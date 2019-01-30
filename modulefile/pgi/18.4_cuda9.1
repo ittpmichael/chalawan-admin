@@ -1,0 +1,49 @@
+#%Module
+#
+# PGI-18.4 with CUDA-9.1
+#
+# modulefiles/
+
+module-whatis "PGI-18.4 with CUDA-9.1 libraries"
+
+conflict pgi/18.4 pgi/2018
+
+set 	version	18.4
+set 	major 	18
+set 	minor	4
+
+set 	pgihome /opt/pgi
+set 	target 	linux86-64
+set 	version 18.4
+
+set	pgidir 	$pgihome/$target/$version
+
+setenv	PGI 	$pgihome
+setenv 	CC 	$pgidir/bin/pgcc
+setenv 	FC 	$pgidir/bin/pgfortran
+setenv 	F90	$pgidir/bin/pgf90
+setenv 	F77 	$pgidir/bin/pgf77
+setenv 	CPP 	"$pgidir/bin/pgcc -Mcpp"
+setenv 	CXX 	$pgidir/bin/pgc++
+
+prepend-path	PATH 	$pgidir/bin
+prepend-path 	MANPATH $pgidir/man
+prepend-path	INCLUDE $pgidir/include
+prepend-path	INCLUDE $pgidir/include_man
+prepend-path	INCLUDE $pgidir/include_pin
+prepend-path	INCLUDE $pgidir/include-gcc48
+prepend-path	LD_LIBRARY_PATH	$pgidir/lib
+
+# add cuda lib path
+set	pgicuda	/opt/pgi/linux86-64/2018/cuda/9.1
+
+prepend-path	PATH	$pgicuda/bin
+prepend-path	INCLUDE $pgicuda/include
+prepend-path	LD_LIBRARY_PATH	$pgicuda/lib64
+prepend-path	PATH	$pgicuda/nvvm/bin
+prepend-path	INCLUDE $pgicuda/nvvm/include
+prepend-path	LD_LIBRARY_PATH $pgicuda/nvvm/lib64
+
+setenv 	CUDADIR	$pgicuda
+setenv	CUDA_HOME $pgicuda
+

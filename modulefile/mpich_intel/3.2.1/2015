@@ -1,0 +1,35 @@
+#%Module 1.0
+#
+#  MPICH-3.2.1 module for use with 'environment-modules' package:
+# 
+# modulefiles/
+
+proc ModulesHelp { } {
+	global openmpi_version
+	global MPI_DIR
+	puts stderr "\t Use $MPI_DIR as your MPI"
+	puts stderr "\n\tVersion $openmpi_version\n"
+}
+module-whatis   "MPICH-3.2.1 compile with INTEL2015"
+
+set		mpich_version 3.2.1
+set		MPI_DIR /home/root_resources/mpich-3.2.1/mpich3.2_intel2015
+conflict	mpich_GNU/3.2.0/4.8.5  mvapich_GNU/2.3.rc/4.8.5  openmpi_GNU/3.0.0/4.8.5 openmpi_GNU/1.10.7/4.8.5 openmpi_pgi/2.1.2/2018 mpich_pgi/3.2.1/2018
+prereq          intel/2015
+
+#module load 
+
+prepend-path	PATH			$MPI_DIR/bin
+prepend-path	INCLUDE			$MPI_DIR/include
+prepend-path	LD_LIBRARY_PATH		$MPI_DIR/lib
+#append-path     LD_LIBRARY_PATH         /usr/lib64/
+#prepend-path	LD_LIBRARY_PATH		/share/apps/intel/composer_xe_2013_sp1.3.174/compiler/lib/intel64
+prepend-path	MANPATH			$MPI_DIR/share/man/
+
+setenv		MPI_HOME		$MPI_DIR
+setenv		MPI_BIN			$MPI_DIR/bin
+#setenv		MPI_SYSCONFIG		$MPI_DIR/etc
+setenv		MPI_INCLUDE		$MPI_DIR/include
+setenv		MPI_LIB			$MPI_DIR/lib
+setenv		MPI_MAN			$MPI_DIR/share/man/
+

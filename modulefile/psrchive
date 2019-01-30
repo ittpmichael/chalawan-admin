@@ -1,0 +1,15 @@
+#%Module 1.0
+#
+#  psrsoft module for use with 'environment-modules' package:
+#
+
+module load openmpi/2.1.2/2017
+
+set             PSRCHIVE_DIR       	/opt/psrchive
+
+prepend-path    PATH                    $PSRCHIVE_DIR/bin
+prepend-path    INCLUDE                 $PSRCHIVE_DIR/include
+prepend-path    LD_LIBRARY_PATH         $PSRCHIVE_DIR/lib/
+append-path     LD_LIBRARY_PATH         /usr/lib64
+
+setenv		PSRHOME		/opt/psrchive

@@ -1,0 +1,14 @@
+#%Module 1.0
+#
+#  psrsoft module for use with 'environment-modules' package:
+#
+
+module load psrchive
+
+set             DSPSR_DIR       	/opt/dspsr2
+
+prepend-path    PATH                    $DSPSR_DIR/bin
+prepend-path    INCLUDE                 $DSPSR_DIR/include
+prepend-path    LD_LIBRARY_PATH         $DSPSR_DIR/lib/
+append-path	LD_LIBRARY_PATH		/usr/lib
+append-path     LD_LIBRARY_PATH         /usr/lib64

@@ -1,0 +1,41 @@
+#%Module 1.0
+#
+#  IntelComposerXE2013 module for use with 'environment-modules' package:
+#
+conflict		intel/intel2015
+
+set			XE_ROOT		/opt/intel/composer_xe_2013_sp1.3.174
+
+prepend-path 		PATH 		$XE_ROOT/bin/intel64
+prepend-path		PATH		$XE_ROOT/debugger/gdb/intel64/bin
+prepend-path            PATH            $XE_ROOT/debugger/gdb/intel64/py27/bin/
+prepend-path		PATH		$XE_ROOT/debugger/python/intel64/bin
+prepend-path		PATH		$XE_ROOT/mpirt/bin/intel64
+
+prepend-path 		LD_LIBRARY_PATH	$XE_ROOT/tbb/lib/intel64/gcc4.4
+prepend-path            LD_LIBRARY_PATH $XE_ROOT/mkl/lib/intel64
+prepend-path            LD_LIBRARY_PATH $XE_ROOT/compiler/lib/intel64
+prepend-path            LD_LIBRARY_PATH $XE_ROOT/ipp/lib/intel64
+prepend-path            LD_LIBRARY_PATH $XE_ROOT/mpirt/lib/intel64
+prepend-path            LD_LIBRARY_PATH $XE_ROOT/compiler/lib/intel64
+
+prepend-path		MANPATH		$XE_ROOT/man/en_US
+
+setenv			INCLUDE		/opt/intel/composer_xe_2013_sp1.3.174/mkl/include
+setenv			MPM_LAUNCHER	/opt/intel/composer_xe_2013_sp1.3.174/debugger/mpm/bin/start_mpm.sh
+setenv			IDB_HOME	/opt/intel/composer_xe_2013_sp1.3.174/bin/intel64
+setenv			LIBRARY_PATH	{/opt/intel/composer_xe_2013_sp1.3.174/compiler/lib/intel64:/opt/intel/composer_xe_2013_sp1.3.174/ipp/lib/intel64:/opt/intel/composer_xe_2013_sp1.3.174/mkl/lib/intel64:/opt/intel/composer_xe_2013_sp1.3.174/mpirt/lib/intel64:/opt/intel/composer_xe_2013_sp1.3.174/tbb/lib/intel64/gcc4.4}
+setenv			IPPROOT		/opt/intel/composer_xe_2013_sp1.3.174/ipp
+setenv			INTEL_LICENSE_FILE	/opt/intel/licenses
+setenv 			CPATH		{/opt/intel/composer_xe_2013_sp1.3.174/ipp/include:/opt/intel/composer_xe_2013_sp1.3.174/mkl/include:/opt/intel/composer_xe_2013_sp1.3.174/tbb/include}
+setenv			TBBROOT		/opt/intel/composer_xe_2013_sp1.3.174/tbb
+setenv			MKLROOT		/opt/intel/composer_xe_2013_sp1.3.174/mkl
+setenv			MKL_LIBDIR	/opt/intel/composer_xe_2013_sp1.3.174/compiler/lib/intel64
+setenv			NLSPATH		{/opt/intel/composer_xe_2013_sp1.3.174/compiler/lib/intel64/locale/%l_%t/%N:/opt/intel/composer_xe_2013_sp1.3.174/ipp/lib/intel64/locale/%l_%t/%N:/opt/intel/composer_xe_2013_sp1.3.174/mkl/lib/intel64/locale/%l_%t/%N:/opt/intel/composer_xe_2013_sp1.3.174/debugger/gdb/intel64/share/locale/%l_%t/%N}
+
+setenv		CC	icc
+setenv		CXX	icpc
+setenv		FC	ifort
+setenv		F77	ifort
+setenv		F90	ifort
+setenv		IDB	idb

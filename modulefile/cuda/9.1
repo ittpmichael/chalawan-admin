@@ -1,0 +1,28 @@
+#%Module 1.0
+#
+#  CUDA Toolkit module for use with 'environment-modules' package:
+#
+# modulefiles/
+
+set	cuda_version	9.1.85.3
+set	CUDADIR	/usr/local/cuda-9.1
+set	CUDA_version	cuda-9.1
+
+setenv	CUDADIR		/usr/local/cuda-9.1
+
+prepend-path	PATH		$CUDADIR/bin
+prepend-path    PATH            $CUDADIR/nvvm/bin
+
+prepend-path	INCLUDE		$CUDADIR/include
+prepend-path    INCLUDE         $CUDADIR/nvvm/include
+prepend-path    INCLUDE		$CUDADIR/extras/CUPTI/include/GL
+prepend-path	INCLUDE		$CUDADIR/extras/CUPTI/include/openacc
+prepend-path    INCLUDE         $CUDADIR/extras/CUPTI/include
+prepend-path    INCLUDE         $CUDADIR/extras/Debugger/include
+prepend-path	INCLUDE		$CUDADIR/targets/x86_64-linux/include/
+
+prepend-path	LD_LIBRARY_PATH	$CUDADIR/lib64
+prepend-path    LD_LIBRARY_PATH $CUDADIR/extras/CUPTI/lib64
+prepend-path    LD_LIBRARY_PATH $CUDADIR/extras/Debugger/lib64
+prepend-path    LD_LIBRARY_PATH $CUDADIR/nvvm/lib64
+prepend-path	MANPATH		$CUDADIR/doc/man
