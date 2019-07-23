@@ -20,16 +20,19 @@ function echoBreak() {
   echo "OK, Let's take a break for a while, type Y when you are ready."
   echo "Or, type ctrl+c to cancel..."
 }
-function echoYN(parameter) {
+function echoYN() {
   #statements
   echo "Please answer Y or n."
+}
+function lowercase(){
+  return `echo "${1,,}"`
 }
 
 DIR_LOG="/root/log/createUser"
 
 
 read -p "Please enter new user name: " NEW_U
-NEW_U=`echo "${NEW_U,,}"`
+NEW_U=`lowercase $NEW_U`
 F_NAME="`date +%y-%m-%d`_$NEW_U"
 F_LOG="$DIR_LOG/$F_NAME"
 touch $F_LOG
@@ -37,7 +40,7 @@ touch $F_LOG
 cat <<EOM >>$F_LOG
 ====================
 EOM
-
+# The begining of every thing
 while true; do
   # make sure you want to add that user to the system. If not, exit shell.
   read -p "\"$NEW_U\" will be added to $HOSTNAME, proceed? (Y/n): " yn
@@ -58,17 +61,18 @@ while true; do
               echo "Password is reset." >> $F_LOG;
               break;;
             [Nn]* ) echo "Password unchanged." >> $F_LOG; break;;
-            * ) echo "Please answer (Y/n): ";
+            * ) echo "Please answer (Y/n): ";;
           esac
         done;
       else
         echo "Check whether \"$NEW_U\" exists?...No";
         echo "Check whether \"$NEW_U\" exists?...No" >> $F_LOG;
-        #=====
+        # Ask for specific primary group
         while true; do
           read -p "Does $NEW_U need to be in a specific primary group? (Y/n): " yn
           case $yn in
             [Yy]* ) \
+              # Ask for group name
               read -p "Please enter a group name: " NEW_G;
               NEW_G=`echo "${NEW_G,,}"`;
               echo "$NEW_U need a specific primary group $NEW_G" >> $F_LOG;
@@ -80,88 +84,86 @@ while true; do
               if [ $out -eq 0 ]; then
                 echo "Check whether \"$NEW_G\" exists?...Yes"
                 echo "Check whether \"$NEW_G\" exists?...Yes" >> $F_LOG
+                NEW_GID=`getent group $NEW_G | cut -d ':' -f 1`
+                LEVER=false
               else
                 echo "Check whether \"$NEW_G\" exists?...No"
                 echo "Check whether \"$NEW_G\" exists?...No" >> $F_LOG
-                # ask if it needs a custom gid
-                read -p "Does $NEW_G need custom gid? (Y/n)?: " yn
-                case $yn in
-                  [Yy]* ) \
-                    read -p "Please provide gid: " NEW_GID;
-                    read -p "The group $NEW_G will be created with gid $NEW_GID, proceed?: " yn
-                    case $yn in
-                      [Yy]* ) \
-                        groupadd $NEW_G -g $NEW_GID;
-                        if [ $out -eq 0 ]; then
-                          echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
-                          echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME" >> $F_LOG
-                        else echo "Group adding error."
-                        fi;
-                        break;;
-                      [Nn]* ) echoBreak;;
-                      * ) echoYN;;
-                    esac
-                    break;;
-                  [Nn]* ) \
-                    groupadd $NEW_G;
-                    NEW_GID=`getent group $NEW_G| cut -d ':' -f 1`
-                    if [ $out -eq 0 ]; then
-                      echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
-                      echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME" >> $F_LOG
-                    else echo "Group adding error."
-                    break;;
-                  * ) echoYN;;
-                esac
-                while true; do
-
-                done;
-              fi;
-              echo "Please select group assignment type...";
-              pri_group="Primary Group"; sec_group="Secondary Group";
-              select choice in "$pri_group" "$sec_group"; do
-                case $choice in
-                  "$pri_group" ) \
-                      #=====
-                      usermod -g $NEW_G $NEW_U;
-                      echo "Assign \"$NEW_G\" as a primary group to $NEW_U";
-                      echo "Assign \"$NEW_G\" as a primary group to $NEW_U" >> $F_LOG;
-                      break;;
-                  "$sec_group" )
-                      #=====
-                      usermod -a -G $NEW_G $NEW_G;
-                      echo "Assign \"$NEW_G\" as a secondary group to $NEW_U";
-                      echo "Assign \"$NEW_G\" as a secondary group to $NEW_U" >> $F_LOG;
-                      break;;
-                  * ) echo "Please select 1 or 2.";;
-                esac
-              done; break;;
+                LEVER=true
+              fi; break;;
             [Nn]* ) \
-               echo "$NEW_U is automatically assign to {`id -nG $NEW_U`}";
-               echo "$NEW_U is automatically assign to {`id -nG $NEW_U`}" >> $F_LOG;
-               break;;
+              NEW_G=$NEW_U
+              echo "$NEW_G is set to be equal $NEW_U";
+              echo "$NEW_U is set to be equal $NEW_U" >> $F_LOG;
+              LEVER=true
+              break;;
             * ) echo "Please answer Y or n.";;
           esac
         done
-
-        adduser $NEW_U;
-        if [ $? -eq 0 ]; then
-          echo "--> $NEW_U is added to $HOSTNAME."
-          echo "--> $NEW_U is added to $HOSTNAME." >> $F_LOG
-        fi;
+        # Ask for custom gid
+        while $LEVER; do
+          read -p "Does $NEW_G need custom gid? (Y/n)?: " yn
+          case $yn in
+            [Yy]* ) \
+              #=====
+              read -p "Please provide gid: " NEW_GID;
+              read -p "The group $NEW_G will be created with gid $NEW_GID, proceed?: " yn
+              case $yn in
+                [Yy]* ) \
+                  groupadd $NEW_G -g $NEW_GID;
+                  if [ $out -eq 0 ]; then
+                    echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
+                    echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME" >> $F_LOG
+                  else echo "Group adding error."
+                  fi; break;;
+                [Nn]* ) echoBreak;;
+                * ) echoYN;;
+              esac; break;;
+            [Nn]* ) \
+              #=====
+              groupadd $NEW_G;
+              NEW_GID=`getent group $NEW_G| cut -d ':' -f 1`
+              if [ $out -eq 0 ]; then
+                echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
+                echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME" >> $F_LOG
+              else echo "Group adding error."
+              fi; break;;
+            * ) echoYN;;
+          esac
+        done;
+        # Ask for specific uid
+        while true; do
+          read -p "Does $NEW_U need specific uid? (Y/n): " yn
+          case $yn in
+            [Yy]* ) \
+              read -p "Please provide uid: " NEW_UID;
+              adduser $NEW_U -u $NEW_UID -g $NEW_GID;
+              if [ $out -eq 0 ]; then
+                  echo "$NEW_U is added with uid $NEW_UID and gid $NEW_GID on $HOSTNAME"
+                  echo "$NEW_U is added with uid $NEW_UID and gid $NEW_GID on $HOSTNAME" >> $F_LOG
+              else echo "User adding error."
+              fi; break;;
+            [Nn]* ) \
+              adduser $NEW_U -g $NEW_GID;
+              if [ $out -eq 0 ]; then
+                  echo "$NEW_U is added gid $NEW_GID on $HOSTNAME"
+                  echo "$NEW_U is added gid $NEW_GID on $HOSTNAME" >> $F_LOG
+              else echo "User adding error.";
+              fi; break;;
+            * ) echoYN;;
+          esac
+        done;
         echo "Please enter first-time-login password.";
         #=====
         passwd $NEW_U;
+        chage -d 0 $NEW_U;
         echo "First time password created." >> $F_LOG;
-      fi;
-      break;;
+      fi; break;;
     [Nn]* ) exit;;
     * ) echo "Please answer Y or n.";;
   esac
 done
 
-
-echo "Performing users synchronization..."
-rocks sync users
 
 while true; do
   read -p "Does\"$NEW_U\" need storage on Lustre? (Y/n): " yn
