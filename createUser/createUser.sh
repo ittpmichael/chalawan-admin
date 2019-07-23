@@ -154,7 +154,6 @@ while true; do
           esac
         done;
         echo "Please enter first-time-login password.";
-        #=====
         passwd $NEW_U;
         chage -d 0 $NEW_U;
         echo "First time password created." >> $F_LOG;
@@ -166,15 +165,15 @@ done
 
 
 while true; do
-  read -p "Does\"$NEW_U\" need storage on Lustre? (Y/n): " yn
+  read -p "Does\"$NEW_U\" need storage on Lustre filesystem? (Y/n): " yn
   case $yn in
     [Yy]* ) \
       echo "$NEW_U needs storage on Lustre" >> $F_LOG;
       ls /lustre/$NEW_U > /dev/null 2>&1;
       out=$?;
       if [ $out -eq 0 ]; then
-        echo "Checking for existing directory /lustre/$NEW_U...Yes"
-        echo "Checking for existing directory /lustre/$NEW_U...Yes" >> $F_LOG
+        echo "Checking for existing directory /lustre/$NEW_G...Yes"
+        echo "Checking for existing directory /lustre/$NEW_G...Yes" >> $F_LOG
         echo "If you want to wipe clean /lustre/$NEW_U, please do it later mannually."
       else
         echo "Checking for existing directory /lustre/$NEW_U...No"
