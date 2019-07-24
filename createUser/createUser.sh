@@ -169,19 +169,20 @@ while true; do
   case $yn in
     [Yy]* ) \
       echo "$NEW_U needs storage on Lustre" >> $F_LOG;
+      # Neeed for group or personal?
       ls /lustre/$NEW_U > /dev/null 2>&1;
       out=$?;
       if [ $out -eq 0 ]; then
         echo "Checking for existing directory /lustre/$NEW_G...Yes"
         echo "Checking for existing directory /lustre/$NEW_G...Yes" >> $F_LOG
-        echo "If you want to wipe clean /lustre/$NEW_U, please do it later mannually."
+        echo "If you want to wipe clean /lustre/$NEW_G, please do it later mannually."
       else
-        echo "Checking for existing directory /lustre/$NEW_U...No"
-        echo "Checking for existing directory /lustre/$NEW_U...No" >> $F_LOG
+        echo "Checking for existing directory /lustre/$NEW_G...No"
+        echo "Checking for existing directory /lustre/$NEW_G...No" >> $F_LOG
         #=====
-        mkdir /lustre/$NEW_U
-        echo "The directory /lustre/$NEW_U has been created."
-        echo "The directory /lustre/$NEW_U has been created." >> $F_LOG
+        mkdir /lustre/$NEW_G
+        echo "The directory /lustre/$NEW_G has been created."
+        echo "The directory /lustre/$NEW_G has been created." >> $F_LOG
       fi;
       echo "Initating user access process...";
       #=====
@@ -209,8 +210,8 @@ while true; do
       echo "Quota has been set with $SIZE TB hard limit.";
       echo "Quota has been set with $SIZE TB hard limit." >> $F_LOG;
       break;;
-    [Nn]* ) break;;
-    * ) echo "Please answer Y or n.";
+    [Nn]* ) echo "$NEW_U doesn't need a storage on the lustre"; break;;
+    * ) echoYN;
   esac
 done
 
