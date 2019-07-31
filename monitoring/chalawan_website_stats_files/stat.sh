@@ -2,30 +2,34 @@
 source /etc/profile.d/sge-binaries.sh
 
 D_TRACE=30
+TEST_MODE=FALSE
+DIR_SAVE=weeklog
 
 ###          FOR TESTING, ENABLE 3 LINES BELOW               ###
-#F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
-#F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
-#F_SUM="/home/ittipat/Documents/testlog/summary.csv"
-#F_FGANGLIA="/home/ittipat/Documents/testlog/fullGanglia.xml"
-#F_NODESTS="/home/ittipat/Documents/testlog/nodeStatus.csv"
-#F_SENT_XML="/home/ittipat/Documents/testlog/qstat.xml"
-#F_WALLCOM="/home/ittipat/Documents/testlog/walltimeComplete.log"
-#F_PYSCRIPT="/home/ittipat/Documents/calStat.py"
-#F_USER="/home/ittipat/Documents/testlog/userRuntime.csv"
-#F_TEMP="/home/ittipat/Documents/testlog/temp"
-
-###          FOR SERIOUS, ENABLE 3 LINES BELOW               ###
 F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
 F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
-F_SUM="/home/ittipat/Documents/weeklog/summary.csv"
+F_SUM="/home/ittipat/Documents/"$DIR_SAVE"/summary.csv"
+#F_FGANGLIA="/home/ittipat/Documents/testlog/fullGanglia.xml"
+F_NODESTS="/home/ittipat/Documents/"$DIR_SAVE"/nodeStatus.csv"
+F_SENT_XML="/home/ittipat/Documents/"$DIR_SAVE"/sentJobs.xml"
+F_WALLCOM="/home/ittipat/Documents/testlog/walltimeComplete.log"
+F_WALLCOM1="/home/ittipat/Documents/testlog/walltimeComplete1.log"
+F_WALLRUN="/home/ittipat/Documents/testlog/walltimeRunning.log"
+F_PYSCRIPT="/home/ittipat/Documents/calStat.py"
+F_USER="/home/ittipat/Documents/testlog/userRuntime.csv"
+F_TEMP="/home/ittipat/Documents/testlog/temp"
+
+###          FOR SERIOUS, ENABLE 3 LINES BELOW               ###
+#F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
+#F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
+#F_SUM="/home/ittipat/Documents/weeklog/summary.csv"
 #F_FGANGLIA="/home/ittipat/Documents/weeklog/fullGanglia.xml"
-F_NODESTS="/home/ittipat/Documents/weeklog/nodeStatus.csv"
-F_SENT_XML="/home/ittipat/Documents/weeklog/sentJobs.xml"
+#F_NODESTS="/home/ittipat/Documents/weeklog/nodeStatus.csv"
+#F_SENT_XML="/home/ittipat/Documents/weeklog/sentJobs.xml"
 #F_WALLCOM="/home/ittipat/Documents/weeklog/walltimeComplete.log"
 #F_PYSCRIPT="/home/ittipat/Documents/calStat.py"
 #F_USER="/home/ittipat/Documents/weeklog/userRuntime.csv"
-F_TEMP="/home/ittipat/Documents/testlog/temp"
+#F_TEMP="/home/ittipat/Documents/testlog/temp"
 
 writeOut()
 {
@@ -37,6 +41,14 @@ File generated on $(date)
 EOM
   cat $TEMP >> $F_TO_WRITE
 }
+
+writeOutNoDate()
+{
+  F_TO_WRITE=$1
+  TEMP=$2
+  cat $TEMP >> $F_TO_WRITE
+}
+
 
 #generating list of running jobs
 #-------------------------------
@@ -56,7 +68,7 @@ num_run=$(gawk 'BEGIN {num_r=0}
 #--------------------------------------
 qstat -u "*" -f -xml > $F_TEMP
 if [[ $(qstat -u "*" -f -xml) > /dev/null ]]; then
-  writeOut $F_SENT_XML $F_TEMP
+  cat $F_TEMP > $F_SENT_XML
 fi
 
 #generating list of finished jobs last month
@@ -112,7 +124,7 @@ num_com=$(gawk 'BEGIN {FS=","; num_r=0}
 #------------------
 temp=$(wc -l $F_SENT | cut -d' ' -f 1)
 num_sent=$(expr $temp - 4)
-if [ $num_sent < 0 ]; then
+if [ ${num_sent} -lt 0 ]; then
   num_sent=0
 fi
 #counting slots used
@@ -130,22 +142,22 @@ num_sub=$(expr $num_comnfail + $num_sent)
 #---------------------
 num_q=$(expr $num_sent - $num_run)
 
-qacct -o -d $D_TRACE > $F_TEMP
+qacct -o > $F_TEMP
 if [ $? -eq 0 ]; then
   writeOut $F_WALLCOM $F_TEMP
 fi
 
-#qstat -u "*" | \
-#  gawk 'NR<3 {print $0; next}{print $0 | "sort -k 6.9 -k 7"}' \
-#  > $F_TEMP
-#if [ $? -eq 0 ]; then
-#  writeOut $F_WALLRUN $F_TEMP
-#fi
+qstat -u "*" | \
+  gawk 'NR<3 {print $0; next}{print $0 | "sort -k 6.9 -k 7"}' \
+  > $F_TEMP
+if [ $? -eq 0 ]; then
+  writeOut $F_WALLRUN $F_TEMP
+fi
 
-#python $F_PYSCRIPT
-#if [ $? -eq 0 ]; then
-#  echo "userrunrime.csv was generated"
-#fi
+/share/apps/python/bin/python3 $F_PYSCRIPT
+if [ $? -eq 0 ]; then
+  echo "userrunrime.csv was generated"
+fi
 
 #cat $F_USER | \
 #  gawk 'BEGIN {FS=","; OFS="\t"}
@@ -183,37 +195,41 @@ JOBS RUNNING, $num_run,
 JOBS WAITING, $num_q,
 COMPLETED JOBS, $num_com,
 SUBMITTED JOBS, $num_sub,
-CORES IN-USED, $num_slot,
+CORES USED, $num_slot,
 EOM
 
 ganglia metric load_one cpu_num mem_free mem_total | \
-  awk 'BEGIN {FS=" "; OFS=","; totLoadCPU=0; totCPU=0; memUsed=0; memTot=0}
+  awk 'BEGIN {FS=" "; OFS=","; totLoadCPU=0; totCPU=0; memFree=0; memTot=0; memUsed=0}
        $1!="mds-0-1" && $1!="mds-0-2" && $1!="login-0-0" &&
        $1!="mic-compute-0-0-mic0" && $1!="mic-compute-0-0-mic1" &&
        $1!="oss-0-1" && $1!="oss-0-2" {if ($2>$3) totalLoadCPU+=$3
         else totalLoadCPU+=$2;
-        totCPU+=$3; memUsed+=$4; memTot+=$5;
+        totCPU+=$3; memFree+=$4; memTot+=$5;
         next}
-      END {print "TOTAL CLUSTER LOAD (%)", totalLoadCPU/totCPU*100;
-      print "TOTAL CLUSTER CPUs", totCPU;
-      print "TOTAL MEM USED (%)", (memTot-memUsed)/memTot*100;
-      print "TOTAL MEM (TB)", memTot/1024/1024/1024}
+      END {print "CORES USED (%)", totalLoadCPU/totCPU*100;
+      print "CORES TOTAL", totCPU;
+      memUsed=memTot-memFree;
+      print "MEM USED (GB)", memUsed/1024/1024;
+      print "MEM USED (%)", memUsed/memTot*100;
+      print "MEM TOTAL (GB)", memTot/1024/1024}
 ' >> $F_SUM
 
 df -B G | \
   awk 'BEGIN {FS=" "; OFS=","}
-  $6=="/export" {print "LOCAL DISK USED (%)", $5 | "cut -d'%' -f 1,2"}
-' >> $F_SUM
-df -B G | \
-  awk 'BEGIN {FS=" "; OFS=","}
-  $6=="/export" {print "LOCAL DISK TOTAL (GB)", $2 | "cut -d'G' -f 1,2"}
+  $6=="/export" {print "LOCAL DISK USED (GB)", $3 | "cut -d'G' -f 1,2";
+	 	 print "LOCAL DISK USED (%)", $5 | "cut -d'%' -f 1,2";
+		 print "LOCAL DISK TOTAL (GB)", $2 | "cut -d'G' -f 1,2";}
 ' >> $F_SUM
 df -B T | \
   awk 'BEGIN {FS=" "; OFS=","}
-  $5=="/lustre" {print "LUSTRE USED (%)", $4 | "cut -d'%' -f 1,2"}
+  $5=="/lustre" {print "LUSTRE USED (TB)", $2 | "cut -d'T' -f 1,2,3";
+		 print "LUSTRE USED (%)", $4 | "cut -d'%' -f 1,2";
+		 print "LUSTRE TOTAL (TB)", $1 | "cut -d'T' -f 1,2,3,4,5"}
 ' >> $F_SUM
-df -B T | \
-  awk 'BEGIN {FS=" "; OFS=","}
-  $5=="/lustre" {print "LUSTRE TOTAL (TB)", $1 | "cut -d'T' -f 1,2,3,4,5"}
+cat $F_USER | \
+  gawk 'BEGIN {FS=","; OFS=","; cputot=0}
+  NR>1  {cputot+=$3}
+  END {printf "CPU hour, %.2f\n", cputot/3600}
 ' >> $F_SUM
+
 #cat $F_SUM
