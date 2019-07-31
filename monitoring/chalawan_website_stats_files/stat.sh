@@ -1,26 +1,32 @@
 #!/bin/bash
 source /etc/profile.d/sge-binaries.sh
-module load python2.7
+
 
 D_TRACE=30
 
 ###          FOR TESTING, ENABLE 3 LINES BELOW               ###
-F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
-F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
-F_SUM="/home/ittipat/Documents/testlog/summary.csv"
-F_FGANGLIA="/home/ittipat/Documents/testlog/fullGanglia.xml"
-F_SENT_XML="/home/ittipat/Documents/testlog/qstat.xml"
-F_WALLCOM="/home/ittipat/Documents/testlog/walltimeComplete.log"
-F_WALLCOM1="/home/ittipat/Documents/testlog/walltimeComplete2.log"
-F_PYSCRIPT="/home/ittipat/Documents/calStat.py"
-F_USER="/home/ittipat/Documents/testlog/userRuntime.csv"
-F_TEMP="/home/ittipat/Documents/testlog/temp"
+#F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
+#F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
+#F_SUM="/home/ittipat/Documents/testlog/summary.csv"
+#F_FGANGLIA="/home/ittipat/Documents/testlog/fullGanglia.xml"
+#F_NODESTS="/home/ittipat/Documents/testlog/nodeStatus.csv"
+#F_SENT_XML="/home/ittipat/Documents/testlog/qstat.xml"
+#F_WALLCOM="/home/ittipat/Documents/testlog/walltimeComplete.log"
+#F_PYSCRIPT="/home/ittipat/Documents/calStat.py"
+#F_USER="/home/ittipat/Documents/testlog/userRuntime.csv"
+#F_TEMP="/home/ittipat/Documents/testlog/temp"
 
 ###          FOR SERIOUS, ENABLE 3 LINES BELOW               ###
-#F_SENT="/home/ittipat/Documents/weeklog/sent_$time_gen.log"
-#F_COM="/home/ittipat/Documents/weeklog/completed_$time_gen.csv"
-#F_SUM="/home/ittipat/Documents/weeklog/sum_$time_gen.csv"
-#F_SENT_XML="/home/ittipat/Documents/weeklog/qstat_full.xml"
+F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
+F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
+F_SUM="/home/ittipat/Documents/weeklog/summary.csv"
+#F_FGANGLIA="/home/ittipat/Documents/weeklog/fullGanglia.xml"
+F_NODESTS="/home/ittipat/Documents/weeklog/nodeStatus.csv"
+F_SENT_XML="/home/ittipat/Documents/weeklog/sentJobs.xml"
+#F_WALLCOM="/home/ittipat/Documents/weeklog/walltimeComplete.log"
+#F_PYSCRIPT="/home/ittipat/Documents/calStat.py"
+#F_USER="/home/ittipat/Documents/weeklog/userRuntime.csv"
+F_TEMP="/home/ittipat/Documents/testlog/temp"
 
 writeOut()
 {
@@ -32,8 +38,6 @@ File generated on $(date)
 EOM
   cat $TEMP >> $F_TO_WRITE
 }
-
-#______________________________________________________________#
 
 #generating list of running jobs
 #-------------------------------
@@ -125,19 +129,6 @@ num_sub=$(expr $num_comnfail + $num_sent)
 #---------------------
 num_q=$(expr $num_sent - $num_run)
 
-#summarize data
-cat <<EOM >$F_SUM
-File generated on $(date)
-==============================================
-JOBS RUNNING, $num_run,
-JOBS WAITING, $num_q,
-COMPLETED JOBS, $num_com,
-SUBMITTED JOBS, $num_sub,
-CORES IN-USED, $num_slot,
-EOM
-
-cat $F_SUM
-
 qacct -o -d $D_TRACE > $F_TEMP
 if [ $? -eq 0 ]; then
   writeOut $F_WALLCOM $F_TEMP
@@ -150,21 +141,78 @@ fi
 #  writeOut $F_WALLRUN $F_TEMP
 #fi
 
-python $F_PYSCRIPT
-echo "userrunrime.csv was generated"
+#python $F_PYSCRIPT
+#if [ $? -eq 0 ]; then
+#  echo "userrunrime.csv was generated"
+#fi
 
-cat $F_USER | \
-  gawk 'BEGIN {FS=","; OFS="\t"}
-  NR==1 {print $2, $3, $6}
-  NR>1  {print $2, $3/3600 "h", $6/3600 "h"; next}
-' > $F_WALLCOM1
+#cat $F_USER | \
+#  gawk 'BEGIN {FS=","; OFS="\t"}
+#  NR==1 {print $2, $3, $6}
+#  NR>1  {print $2, $3/3600 "h", $6/3600 "h"; next}
+#' > $F_WALLCOM1
 
-cat $F_WALLCOM1
+#cat $F_WALLCOM1
 
-#generating list of running jobs IN XML
-#--------------------------------------
-ganglia --xml > $F_TEMP
+#generate full list of nodes status IN XML
+#-----------------------------------------
+#ganglia --xml > $F_TEMP
+#if [ $? -eq 0 ]; then
+#  writeOut $F_FGANGLIA $F_TEMP
+#fi
+
+#generate lesser list of nodes status IN CSV
+#-------------------------------------------
+qhost | \
+  awk '
+    BEGIN {FS=" "; OFS=","}
+    NR==1 {print $1,$3,$4,$5,$6,$7,$8}
+    NR>3  {print $1,$3,$4,$5,$6,$7,$8}
+' > $F_TEMP
 if [ $? -eq 0 ]; then
-  writeOut $F_FGANGLIA $F_TEMP
+  writeOut $F_NODESTS $F_TEMP
 fi
+#cat $F_NODESTS
 
+#summarize data
+cat <<EOM >$F_SUM
+File generated on $(date)
+==============================================
+JOBS RUNNING, $num_run,
+JOBS WAITING, $num_q,
+COMPLETED JOBS, $num_com,
+SUBMITTED JOBS, $num_sub,
+CORES IN-USED, $num_slot,
+EOM
+
+ganglia metric load_one cpu_num mem_free mem_total | \
+  awk 'BEGIN {FS=" "; OFS=","; totLoadCPU=0; totCPU=0; memUsed=0; memTot=0}
+       $1!="mds-0-1" && $1!="mds-0-2" && $1!="login-0-0" &&
+       $1!="mic-compute-0-0-mic0" && $1!="mic-compute-0-0-mic1" &&
+       $1!="oss-0-1" && $1!="oss-0-2" {if ($2>$3) totalLoadCPU+=$3
+        else totalLoadCPU+=$2;
+        totCPU+=$3; memUsed+=$4; memTot+=$5;
+        next}
+      END {print "TOTAL CLUSTER LOAD (%)", totalLoadCPU/totCPU*100;
+      print "TOTAL CLUSTER CPUs", totCPU;
+      print "TOTAL MEM USED (%)", (memTot-memUsed)/memTot*100;
+      print "TOTAL MEM (TB)", memTot/1024/1024/1024}
+' >> $F_SUM
+
+df -B G | \
+  awk 'BEGIN {FS=" "; OFS=","}
+  $6=="/export" {print "LOCAL DISK USED (%)", $5 | "cut -d'%' -f 1,2"}
+' >> $F_SUM
+df -B G | \
+  awk 'BEGIN {FS=" "; OFS=","}
+  $6=="/export" {print "LOCAL DISK TOTAL (GB)", $2 | "cut -d'G' -f 1,2"}
+' >> $F_SUM
+df -B T | \
+  awk 'BEGIN {FS=" "; OFS=","}
+  $5=="/lustre" {print "LUSTRE USED (%)", $4 | "cut -d'%' -f 1,2"}
+' >> $F_SUM
+df -B T | \
+  awk 'BEGIN {FS=" "; OFS=","}
+  $5=="/lustre" {print "LUSTRE TOTAL (TB)", $1 | "cut -d'T' -f 1,2,3,4,5"}
+' >> $F_SUM
+#cat $F_SUM
