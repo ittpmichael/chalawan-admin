@@ -1,7 +1,6 @@
 #!/bin/bash
 source /etc/profile.d/sge-binaries.sh
 
-
 D_TRACE=30
 
 ###          FOR TESTING, ENABLE 3 LINES BELOW               ###
@@ -56,7 +55,7 @@ num_run=$(gawk 'BEGIN {num_r=0}
 #generating list of running jobs IN XML
 #--------------------------------------
 qstat -u "*" -f -xml > $F_TEMP
-if [ $? -eq 0 ]; then
+if [[ $(qstat -u "*" -f -xml) > /dev/null ]]; then
   writeOut $F_SENT_XML $F_TEMP
 fi
 
@@ -113,7 +112,9 @@ num_com=$(gawk 'BEGIN {FS=","; num_r=0}
 #------------------
 temp=$(wc -l $F_SENT | cut -d' ' -f 1)
 num_sent=$(expr $temp - 4)
-
+if [ $num_sent < 0 ]; then
+  num_sent=0
+fi
 #counting slots used
 #-------------------
 num_slot=$(gawk 'BEGIN {FS=" "; num_s=0;}
