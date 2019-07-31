@@ -178,9 +178,12 @@ fi
 #-------------------------------------------
 qhost | \
   awk '
-    BEGIN {FS=" "; OFS=","}
+    BEGIN {FS=" "; OFS=","; load=0}
     NR==1 {print $1,$3,$4,$5,$6,$7,$8}
-    NR>3  {print $1,$3,$4,$5,$6,$7,$8}
+    NR>3 { if ($1!="mic-compute-0-0-mic0" && $1!="mic-compute-0-0-mic1")
+      { if ($4>=$3) load=100
+        else load=$4/$3*100 ;
+        print $1,$3,load,$5,$6,$7,$8}}
 ' > $F_TEMP
 if [ $? -eq 0 ]; then
   writeOut $F_NODESTS $F_TEMP
