@@ -4,7 +4,7 @@ source /etc/profile.d/sge-binaries.sh
 D_TRACE=30
 TEST_MODE=FALSE
 DIR_SAVE=weeklog
-
+DIR_TEST="/home/ittipat/Documents/testlog"
 ###          FOR TESTING, ENABLE 3 LINES BELOW               ###
 F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
 F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
@@ -17,8 +17,9 @@ F_WALLCOM1="/home/ittipat/Documents/testlog/walltimeComplete1.log"
 F_WALLRUN="/home/ittipat/Documents/testlog/walltimeRunning.log"
 F_PYSCRIPT="/home/ittipat/Documents/calStat.py"
 F_USER="/home/ittipat/Documents/testlog/userRuntime.csv"
+F_QHOST="/home/ittipat/Documents/testlog/qhostCutG.txt"
 F_TEMP="/home/ittipat/Documents/testlog/temp"
-
+F_CPU_HOUR="$DIR_TEST/cpuhour.csv"
 ###          FOR SERIOUS, ENABLE 3 LINES BELOW               ###
 #F_SENT="/home/ittipat/Documents/testlog/sentJobs.log"
 #F_COM="/home/ittipat/Documents/testlog/completedJobs.csv"
@@ -36,7 +37,7 @@ writeOut()
   F_TO_WRITE=$1
   TEMP=$2
   cat <<EOM >$F_TO_WRITE
-File generated on $(date)
+File updated on $(date)
 ==============================================
 EOM
   cat $TEMP >> $F_TO_WRITE
@@ -201,20 +202,21 @@ SUBMITTED JOBS, $num_sub,
 CORES USED, $num_slot,
 EOM
 
-ganglia metric load_one cpu_num mem_free mem_total | \
-  awk 'BEGIN {FS=" "; OFS=","; totLoadCPU=0; totCPU=0; memFree=0; memTot=0; memUsed=0}
+qhost > $F_QHOST
+sed -i 's/G//g' $F_QHOST
+cat $F_QHOST | \
+awk 'BEGIN {FS=" "; OFS=","; totLoadCPU=0; totCPU=0; memFree=0; memTot=0; memUsed=0}
        $1!="mds-0-1" && $1!="mds-0-2" && $1!="login-0-0" &&
        $1!="mic-compute-0-0-mic0" && $1!="mic-compute-0-0-mic1" &&
-       $1!="oss-0-1" && $1!="oss-0-2" {if ($2>$3) totalLoadCPU+=$3
-        else totalLoadCPU+=$2;
-        totCPU+=$3; memFree+=$4; memTot+=$5;
+       $1!="oss-0-1" && $1!="oss-0-2" && $1!="castor" {if ($4>$3) totalLoadCPU+=$3
+        else totalLoadCPU+=$4;
+        totCPU+=$3; memUsed+=$6; memTot+=$5;
         next}
       END {print "CORES USED (%)", totalLoadCPU/totCPU*100;
       print "CORES TOTAL", totCPU;
-      memUsed=memTot-memFree;
-      print "MEM USED (GB)", memUsed/1024/1024;
+      print "MEM USED (GB)", memUsed;
       print "MEM USED (%)", memUsed/memTot*100;
-      print "MEM TOTAL (GB)", memTot/1024/1024}
+      print "MEM TOTAL (GB)", memTot}
 ' >> $F_SUM
 
 df -B G | \
@@ -231,8 +233,10 @@ df -B T | \
 ' >> $F_SUM
 cat $F_USER | \
   gawk 'BEGIN {FS=","; OFS=","; cputot=0}
-  NR>1  {cputot+=$3}
+  NR>1  {cputot+=$6}
   END {printf "CPU hour, %.2f\n", cputot/3600}
 ' >> $F_SUM
 
-#cat $F_SUM
+qacct | awk 'NR==4 {print $4}' > $F_TEMP
+
+scp {$F_SUM,$F_NODESTS,$F_SENT_XML,/home/ittipat/Documents/weeklog/dumpLoad.csv} ittipat@192.168.2.14:/home/ittipat/Documents/chalawan-log
