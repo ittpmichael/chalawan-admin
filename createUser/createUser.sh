@@ -21,7 +21,6 @@ function echoBreak() {
   echo "Or, type ctrl+c to cancel..."
 }
 function echoYN() {
-  #statements
   echo "Please answer Y or n."
 }
 function lowercase(){
@@ -30,12 +29,18 @@ function lowercase(){
 
 DIR_LOG="/root/log/createUser"
 
+echo "Log file has been created at $F_LOG"
 
 read -p "Please enter new user name: " NEW_U
 NEW_U=`lowercase $NEW_U`
 F_NAME="`date +%y-%m-%d`_$NEW_U"
 F_LOG="$DIR_LOG/$F_NAME"
 touch $F_LOG
+
+function echoLog() {
+  echo $1
+  echo $1 >> $F_LOG
+}
 
 cat <<EOM >>$F_LOG
 ====================
@@ -49,24 +54,21 @@ while true; do
       id -u $NEW_U > /dev/null 2>&1;
       out=$?;
       if [ $out -eq 0 ]; then
-        echo "Check whether \"$NEW_U\" exists?...Yes";
-        echo "Check whether \"$NEW_U\" exists?...Yes" >> $F_LOG;
+        echoLog "Check whether \"$NEW_U\" exists?...Yes";
         while true; do
           read -p "Do you want to reset $NEW_U's password? (Y/n): " yn
           case $yn in
             [Yy]* ) \
               #=====
               passwd $NEW_U;
-              echo "Password is reset.";
-              echo "Password is reset." >> $F_LOG;
+              echoLog "Password is reset.";
               break;;
             [Nn]* ) echo "Password unchanged." >> $F_LOG; break;;
             * ) echo "Please answer (Y/n): ";;
           esac
         done;
       else
-        echo "Check whether \"$NEW_U\" exists?...No";
-        echo "Check whether \"$NEW_U\" exists?...No" >> $F_LOG;
+        echoLog "Check whether \"$NEW_U\" exists?...No";
         # Ask for specific primary group
         while true; do
           read -p "Does $NEW_U need to be in a specific primary group? (Y/n): " yn
@@ -82,19 +84,16 @@ while true; do
               out=$?
               echo "Call group result: $out";
               if [ $out -eq 0 ]; then
-                echo "Check whether \"$NEW_G\" exists?...Yes"
-                echo "Check whether \"$NEW_G\" exists?...Yes" >> $F_LOG
+                echoLog "Check whether \"$NEW_G\" exists?...Yes"
                 NEW_GID=`getent group $NEW_G | cut -d ':' -f 1`
                 LEVER=false
               else
-                echo "Check whether \"$NEW_G\" exists?...No"
-                echo "Check whether \"$NEW_G\" exists?...No" >> $F_LOG
+                echoLog "Check whether \"$NEW_G\" exists?...No"
                 LEVER=true
               fi; break;;
             [Nn]* ) \
               NEW_G=$NEW_U
-              echo "$NEW_G is set to be equal $NEW_U";
-              echo "$NEW_U is set to be equal $NEW_U" >> $F_LOG;
+              echoLog "$NEW_G is set to be equal $NEW_U";
               LEVER=true
               break;;
             * ) echo "Please answer Y or n.";;
@@ -112,8 +111,7 @@ while true; do
                 [Yy]* ) \
                   groupadd $NEW_G -g $NEW_GID;
                   if [ $out -eq 0 ]; then
-                    echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
-                    echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME" >> $F_LOG
+                    echoLog "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
                   else echo "Group adding error."
                   fi; break;;
                 [Nn]* ) echoBreak;;
@@ -124,8 +122,7 @@ while true; do
               groupadd $NEW_G;
               NEW_GID=`getent group $NEW_G| cut -d ':' -f 1`
               if [ $out -eq 0 ]; then
-                echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
-                echo "$NEW_G is added with gid $NEW_GID on $HOSTNAME" >> $F_LOG
+                echoLog "$NEW_G is added with gid $NEW_GID on $HOSTNAME"
               else echo "Group adding error."
               fi; break;;
             * ) echoYN;;
@@ -139,15 +136,13 @@ while true; do
               read -p "Please provide uid: " NEW_UID;
               adduser $NEW_U -u $NEW_UID -g $NEW_GID;
               if [ $out -eq 0 ]; then
-                  echo "$NEW_U is added with uid $NEW_UID and gid $NEW_GID on $HOSTNAME"
-                  echo "$NEW_U is added with uid $NEW_UID and gid $NEW_GID on $HOSTNAME" >> $F_LOG
+                  echoLog "$NEW_U is added with uid $NEW_UID and gid $NEW_GID on $HOSTNAME"
               else echo "User adding error."
               fi; break;;
             [Nn]* ) \
               adduser $NEW_U -g $NEW_GID;
               if [ $out -eq 0 ]; then
-                  echo "$NEW_U is added gid $NEW_GID on $HOSTNAME"
-                  echo "$NEW_U is added gid $NEW_GID on $HOSTNAME" >> $F_LOG
+                  echoLog "$NEW_U is added gid $NEW_GID on $HOSTNAME"
               else echo "User adding error.";
               fi; break;;
             * ) echoYN;;
@@ -163,56 +158,68 @@ while true; do
   esac
 done
 
+# set up the user quota by copying the quota policy from the existing user to
+# the new user
+edquota -p ittipat $NEW_U
+echoLog "/home quota for $NEW_U has been set to 4.5(5.0)GB block"
+echoLog "and 311296(327680) inodes"
 
 while true; do
   read -p "Does\"$NEW_U\" need storage on Lustre filesystem? (Y/n): " yn
   case $yn in
     [Yy]* ) \
-      echo "$NEW_U needs storage on Lustre" >> $F_LOG;
-      # Neeed for group or personal?
-      ls /lustre/$NEW_U > /dev/null 2>&1;
+      echoLog "$NEW_U needs storage on Lustre" >> $F_LOG;
+      # TODO Neeed for group or personal?
+      echo "Does \"$NEW_U\" need a shared directory or a personal directory?"
+      choice1="Shared directory"; choice2="Personal directory";
+      choice3="Other secondary group (enter it mannually)";
+      select choice in ${choice1} ${choice2} ${choice3}; do
+        case $choice in
+          ${choice1} ) \
+            echoLog "\"$choice1\" is selected";
+            NEW_LDIR=$NEW_U; break;;
+          ${choice2} ) \
+            echoLog "\"$choice2\" is selected";
+            NEW_LDIR=$NEW_G; break;;
+          ${choice3} ) \
+            echoLog "\"$choice3\" is selected";
+            echo "Please enter group name from: "
+            # TODO: What if admin enter wrong group name?
+            # 1st method: ask for confirmation
+            # 2nd method: check if the given name is in the group list
+            read -p "\"`groups $NEW_U | cut -d' ' -f3-`\"" NEW_LDIR
+        esac
+      done
+      ls /lustre/$NEW_LDIR > /dev/null 2>&1;
       out=$?;
       if [ $out -eq 0 ]; then
-        echo "Checking for existing directory /lustre/$NEW_G...Yes"
-        echo "Checking for existing directory /lustre/$NEW_G...Yes" >> $F_LOG
-        echo "If you want to wipe clean /lustre/$NEW_G, please do it later mannually."
+        echoLog "Checking for existing directory /lustre/$NEW_LDIR...Yes"
+        echo "If you want to adjust the quota, please do it later mannually."
       else
-        echo "Checking for existing directory /lustre/$NEW_G...No"
-        echo "Checking for existing directory /lustre/$NEW_G...No" >> $F_LOG
+        echoLog "Checking for existing directory /lustre/$NEW_LDIR...No"
         #=====
-        mkdir /lustre/$NEW_G
-        echo "The directory /lustre/$NEW_G has been created."
-        echo "The directory /lustre/$NEW_G has been created." >> $F_LOG
+        mkdir /lustre/$NEW_LDIR
+        echoLog "The directory /lustre/$NEW_LDIR has been created."
+        # Transfer ownership
+        chown -R $NEW_U:$NEW_LDIR /lustre/$NEW_LDIR;
+        # Add attr project
+        chattr +P /lustre/$NEW_LDIR;
+        # Assign project id = gid
+        PID=`getent group $NEW_LDIR | cut -d':' -f3`
+        chattr -p $PID /lustre/$NEW_LDIR;
+        read -p "How many Terabyte on lustre \"$NEW_U\" needs: " SIZE_H;
+        # calculate soft limit block size and inode sizes
+        SIZE_S=`echo "scale=0; ($SIZE_H*0.9)/1" | bc`;
+        INODE_H=`echo "scale=0; $SIZE_H*100000" | bc`;
+        INODE_S=`echo "scale=0; $SIZE_S*100000" | bc`;
       fi;
-      echo "Initating user access process...";
       #=====
-      chown -R $NEW_U:`id -ng $NEW_U`;
-      echo "--> Owner right is trasfered with chown...Yes";
-      #=====
-      scp /etc/shadow mds-0-1:/etc/shadow;
-      scp /etc/shadow mds-0-2:/etc/shadow;
-      echo "--> Transfer file to lustre client...shadow...Yes";
-      #=====
-      scp /etc/group mds-0-1:/etc/group;
-      scp /etc/group mds-0-2:/etc/group;
-      echo "--> Transfer file to lustre client...group...Yes";
-      #=====
-      scp /etc/passwd mds-0-1:/etc/passwd;
-      scp /etc/passwd mds-0-2:/etc/passwd;
-      echo "--> Transfer file to lustre client...passwd...Yes";
-      echo "User access on lustre granted.";
-      echo "User access on lustre granted.." >> $F_LOG;
-      read -p "How many Terabyte on lustre \"$NEW_U\" needs: " SIZE;
-      SIZE_KBYTE_H=`echo "scale=0; ($SIZE*1024*1024*1024)/1" | bc`;
-      SIZE_KBYTE_S=`echo "scale=0; ($SIZE_KBYTE_H*0.9)/1" | bc`;
-      #=====
-      lfs setquota -u $NEW_U -b $SIZE_KBYTE_S -B $SIZE_KBYTE_H /lustre/$NEW_U;
-      echo "Quota has been set with $SIZE TB hard limit.";
-      echo "Quota has been set with $SIZE TB hard limit." >> $F_LOG;
+      lfs setquota -p $PID -b ${SIZE_H}T -B ${SIZE_S}T -i $INODE_S \
+        -I $INODE_H /lustre/$NEW_LDIR;
+      echoLog "The quota has been set with $SIZE_S($SIZE_H) TB";
+      echoLog "and inode $INODE_S($INODE_H) files";
       break;;
-    [Nn]* ) echo "$NEW_U doesn't need a storage on the lustre"; break;;
+    [Nn]* ) echoLog "$NEW_U doesn't need a storage on the lustre"; break;;
     * ) echoYN;
   esac
 done
-
-echo "Log file has been created at $F_LOG"
