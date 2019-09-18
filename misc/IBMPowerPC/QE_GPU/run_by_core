@@ -1,0 +1,52 @@
+#!/bin/bash
+#location of HPL
+HPL_DIR=`pwd`
+
+# Number of CPU cores
+# Total CPU cores / Total GPUs (not counting hyperthreading)
+#CPU_CORES_PER_RANK=16
+CPU_CORES_PER_RANK=10
+
+export MPI_ROOT=/opt/ibm/spectrum_mpi
+#export PAMI_IBV_DEVICE_NAME=mlx5_0:1
+#export PAMI_ENABLE_STRIPING=0
+
+#export END_PROG=10
+
+export OMP_NUM_THREADS=$CPU_CORES_PER_RANK
+#export MKL_NUM_THREADS=$CPU_CORES_PER_RANK
+
+export CUDA_DEVICE_MAX_CONNECTIONS=12
+export CUDA_COPY_SPLIT_THRESHOLD_MB=1
+
+export GPU_DGEMM_SPLIT=1.0
+export TRSM_CUTOFF=1000000
+
+export TEST_SYSTEM_PARAMS=1
+APP=/gpfs/gpfs_gl4_16mb/b8p113/qe-gpu-power8-GPU/bin/pw.x
+
+echo "CPU_CORES_PER_RANK=$CPU_CORES_PER_RANK"
+
+#ldd $APP
+
+lrank=$OMPI_COMM_WORLD_LOCAL_RANK
+
+case ${lrank} in
+[0])
+#ldd $APP
+export CUDA_VISIBLE_DEVICES=0; numactl --physcpubind=0,8,16,24,32 --membind=0 $APP -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-scalrela_444_90_v180.scf.in
+  ;;
+[1])
+#xport CUDA_VISIBLE_DEVICES=1; numactl --physcpubind=36,40,44,48,52,56,60,64,68 --membind=0 $APP
+export CUDA_VISIBLE_DEVICES=1; numactl --physcpubind=40,48,56,64,72 --membind=0 $APP -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-scalrela_444_90_v180.scf.in
+#export CUDA_VISIBLE_DEVICES=1; numactl --physcpubind=8,12 --membind=0 $APP
+  ;;
+[2])
+#export CUDA_VISIBLE_DEVICES=2; numactl --physcpubind=72,76,80,84,88,92,96,100,104 --membind=8 $APP
+export CUDA_VISIBLE_DEVICES=2; numactl --physcpubind=80,88,96,104,112 --membind=8 $APP -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-scalrela_444_90_v180.scf.in
+  ;;
+[3])
+#export CUDA_VISIBLE_DEVICES=3; numactl --physcpubind=108,112,116,120,124,128,132,136,140 --membind=8 $APP
+export CUDA_VISIBLE_DEVICES=3; numactl --physcpubind=120,128,136,144,152 --membind=8 $APP -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-scalrela_444_90_v180.scf.in
+  ;;
+esac

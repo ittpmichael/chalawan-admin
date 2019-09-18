@@ -1,0 +1,19 @@
+1. To build with the XLF compilers
+
+./bld_ppc64le.sh
+
+2. To run the conus experiment
+
+cd ../rundir
+bsub < conus.lsf
+
+3. Data sources : 
+
+Data from http://www2.mmm.ucar.edu/WG2bench/conus12km_data_v3
+          http://www2.mmm.ucar.edu/WG2bench/conus_2.5_v3
+http://www2.mmm.ucar.edu/WG2bench/conus12km_data_v3-2/conus12km_data_v3-2.tar.gz
+http://www2.mmm.ucar.edu/wrf/src/WRFV3.8.1.TAR.gz
+
+Copied to the downloads sub-directory for reference.
+
+

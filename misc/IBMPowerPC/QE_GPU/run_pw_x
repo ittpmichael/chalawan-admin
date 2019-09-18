@@ -1,0 +1,12 @@
+#!/bin/bash
+
+export MPI_ROOT=/opt/ibm/spectrum_mpi
+export MANPATH=$MPI_ROOT/share/man:$MANPATH
+
+export PATH=/usr/local/cuda-9.2/bin:/opt/ibm/spectrum_mpi/bin:$PATH
+export LD_LIBRARY_PATH=/gpfs/gpfs_gl4_16mb/b8p113/nbody/bin/ppc64le/linux/release:/opt/ibmmath/essl/6.1/lib64:/usr/local/cuda-9.2/lib64:/opt/ibm/spectrum_mpi/lib/pami_noib:/opt/ibm/spectrum_mpi/pami_devel/lib:/opt/ibm/spectrum_mpi/lib:/usr/lib64:/opt/ibm/lib:$LD_LIBRARY_PATH
+
+
+
+mpirun -np 4 -bind-to none -tcp --allow-run-as-root ./run_by_core
+

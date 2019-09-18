@@ -1,0 +1,83 @@
+#!/bin/bash
+#BSUB -L /bin/bash
+#BSUB -J conus
+#BSUB -n 20
+#BSUB -R "affinity[thread(8):cpubind=thread:distribute=pack] span[ptile=20]"
+#BSUB -x
+#BSUB -W 09:00
+#BSUB -S 2G
+#BSUB -o conus.o.%J
+#BSUB -e conus.e.%J
+#BSUB -q s822lc_p100
+##BSUB -q s822lc_p100_k80_combined
+##BSUB -q normal
+
+. ~/.bashrc
+
+module use /gpfs/gpfs_gl4_16mb/lmod/P8/rhel/7.5/core
+ml load smpi/10.2.0.4_beta
+ml load xlf/16.1.0
+ml load xlc/16.1.0
+ml
+export IBM_SPECTRUM_MPI_LICENSE_ACCEPT=yes
+export XLF_BASE=$(which xlf)/..
+
+JOB_ID=$LSB_JOBID
+
+ulimit -s unlimited
+ulimit -c unlimited
+ulimit -a
+
+export MALLOC_MMAP_MAX_=0
+export MALLOC_TRIM_THRESHOLD_=134217728 
+
+export OMP_NUM_THREADS=4
+#export OMP_NUM_THREADS=1
+export OMP_STACKSIZE=480M
+
+export IO_PROCS=0
+export NPROC_X=5
+export NPROC_Y=4
+export NUMTILES=4
+cat ./namelist.input.in | sed -e 's/NPROC_X/'${NPROC_X}'/' | sed -e 's/NPROC_Y/'${NPROC_Y}'/' | sed -e 's/NUMTILES/'${NUMTILES}'/'  | sed -e 's/IO_PROCS/'${IO_PROCS}'/'  > namelist.input
+
+rm -f core.*
+#SW=/home/guest/WRF/conus_12km/sw
+cf=gcc7
+cf=at11
+cf=xl_
+#export LD_LIBRARY_PATH=$SDIR/local/$cf/netcdf-4.4.1.1/lib:$SDIR/local/$cf/hdf5-1.8.18/lib:$SDIR/local/$cf/szip-2.1/lib:$LD_LIBRARY_PATH:/opt/at11.0/lib:/opt/at11.0/lib64:/usr/lib64:/lib64
+TMPDIR=/tmp # Spectrum MPI does not like TMPDIR in GPFS
+prot=MCM
+prot=pami_noib
+prot=PAMI
+prefix="--bind-to none --tag-output -prot -$prot -x PAMI_IBV_ADAPTER_AFFINITY=0 -x PAMI_ENABLE_STRIPING=0 -x PAMI_IBV_DEVICE_NAME=mlx5_0:1 -x OMP_NUM_THREADS=$OMP_NUM_THREADS -x OMP_WAIT_POLICY=PASSIVE -x OMP_STACKSIZE=600M"
+#prefix="--bind-to none --tag-output -btl_openib_warn_default_gid_prefix 0 -mca coll ^ibm -x OMP_NUM_THREADS=$OMP_NUM_THREADS -x OMP_WAIT_POLICY=PASSIVE -x OMP_STACKSIZE=480M"
+#prefix="--bind-to none --tag-output -$prot -mca coll ^ibm -x OMP_NUM_THREADS=$OMP_NUM_THREADS -x OMP_WAIT_POLICY=PASSIVE -x OMP_STACKSIZE=480M"
+time mpiexec $prefix -n 20 ./wrapper.$(uname -m) ./wrf.exe
+#mpiexec --tag-output -x OMP_NUM_THREADS=4 --bind-to none -n 18
+#time mpiexec -n 18 $prefix ./wrf.exe
+
+
+
+
+
+date
+
+./wrfetime rsl.error.0000 | awk -f ./stats.awk > wrfetime_out.${NPROC_X}x${NPROC_Y}x${OMP_NUM_THREADS}.$JOB_ID
+
+if [ -r perf.data.0 ] ; then
+    perf report   --stdio -i perf.data.0 > perf.report.0.$JOB_ID
+    perf annotate --stdio -i perf.data.0 > perf.annotate.0.$JOB_ID
+    if [ -r ~/FlameGraph/stackcollapse.pl ] ; then
+        perf script -i perf.data.0 | ~/FlameGraph/stackcollapse.pl|~/FlameGraph/flamegraph.pl > out.svg.0.$JOB_ID
+    fi
+    mv perf.data.0 perf.data.0.$JOB_ID
+fi
+
+echo
+cat wrfetime_out.${NPROC_X}x${NPROC_Y}x${OMP_NUM_THREADS}.$JOB_ID
+echo
+
+exit 0
+

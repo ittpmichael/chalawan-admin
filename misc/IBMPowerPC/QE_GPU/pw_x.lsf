@@ -1,0 +1,33 @@
+#BSUB -L /bin/bash
+#BSUB -J pw_x
+#BSUB -o pw_x.o.%J
+#BSUB -n 4
+#BSUB -R "span[ptile=4]"
+#BSUB -R "rusage[ngpus_excl_p=4]"
+#BSUB -q "s822lc_p100"
+#BSUB -x
+
+sudo nvidia-smi --compute-mode=DEFAULT
+
+module load smpi cuda
+export XLSMPOPTS=spins=0:yields=0
+export ESSL_CUDA_HYBRID=yes
+export ESSL_CUDA_PIN=yes
+
+
+export MPI_ROOT=/opt/ibm/spectrum_mpi
+export MANPATH=$MPI_ROOT/share/man:$MANPATH
+
+export PATH=/usr/local/cuda-9.2/bin:/opt/ibm/spectrum_mpi/bin:$PATH
+export LD_LIBRARY_PATH=/gpfs/gpfs_gl4_16mb/b8p113/nbody/bin/ppc64le/linux/release:/opt/ibmmath/essl/6.1/lib64:/usr/local/cuda-9.2/lib64:/opt/ibm/spectrum_mpi/lib/pami_noib:/opt/ibm/spectrum_mpi/pami_devel/lib:/opt/ibm/spectrum_mpi/lib:/usr/lib64:/opt/ibm/lib:$LD_LIBRARY_PATH
+
+
+
+export OMP_NUM_THREADS=20
+export OMP_PROC_BIND=TRUE
+
+#./run_pw_x
+#mpirun /gpfs/gpfs_gl4_16mb/b8p113/qe-gpu-power8-GPU/bin/pw.x  -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-fullrela_444_90_v180.scf.in
+#mpirun /gpfs/gpfs_gl4_16mb/b8p113/qe-gpu-power8-GPU/bin/pw.x  -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-scalrela_444_90_v180.scf.in
+#mpirun ./launch_4task5thread1GPU.sh  /gpfs/gpfs_gl4_16mb/b8p113/qe-gpu-power8-GPU/bin/pw.x  -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-scalrela_444_90_v180.scf.in
+mpirun ./launch_4task5thread1GPU.sh  /gpfs/gpfs_gl4_16mb/b8p113/qe-gpu-power8-GPU/bin/pw.x  -ni 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-scalrela_888_90_v180.scf.in

@@ -1,0 +1,92 @@
+#!/bin/bash
+gdb=gdb
+gdb=
+valgrind=valgrind
+valgrind=
+export OMP_PROC_BIND=TRUE
+launcher=
+# hwtperrank = 4
+# OMP_NUM_THREADS=1, MPI=18
+# rank bcpus  ecpus
+#    0   0,1  36,37
+#    1   2,3  38,39
+#    ..............
+#
+# OMP_NUM_THREADS=2, MPI=18
+# rank bcpus  ecpus
+#    0   0,1  36,37
+#    1   2,3  38,39
+#    ..............
+#
+# OMP_NUM_THREADS=4, MPI=18
+# rank bcpus  ecpus
+#    0   0,1  36,37
+#    1   2,3  38,39
+#    ..............
+#
+# hwtperrank = 2
+# OMP_NUM_THREADS=1, MPI=36
+# rank bcpus  ecpus
+#    0     0     36
+#    1     1     37
+#    ..............
+#
+# OMP_NUM_THREADS=2, MPI=36
+# rank bcpus  ecpus
+#    0     0     36
+#    1     1     37
+#    ..............
+#
+smt=2
+((hwtperrank=72/OMPI_COMM_WORLD_LOCAL_SIZE))
+((bcpu=OMPI_COMM_WORLD_LOCAL_RANK*hwtperrank/smt))
+((ecpu=bcpu+36))
+((hwtperrankpersocket=hwtperrank/2))
+bcpus=$bcpu
+ecpus=$ecpu
+for i in $(seq 2 $hwtperrankpersocket)
+do
+    ((bcpu=bcpu+i-1))
+    ((ecpu=ecpu+i-1))
+    v=,
+    bcpus=${bcpus}${v}${bcpu}
+    ecpus=${ecpus}${v}${ecpu}
+done
+export GOMP_CPU_AFFINITY=$bcpus,$ecpus
+echo $bcpus,$ecpus
+taskset -acp $$
+numactl=
+numactl="numactl --physcpubind=$bcpus,$ecpus "
+ulimit -s unlimited
+cmd="$@"
+if [ $OMPI_COMM_WORLD_RANK -eq 0 ] ; then
+   cmd="perf stat                                      $@"
+   cmd="perf record -F99 -g -o perf.data.$OMPI_COMM_WORLD_RANK $@"
+   cmd="perf record -o perf.data.$OMPI_COMM_WORLD_RANK $@"
+fi
+if [ $OMPI_COMM_WORLD_RANK -eq 9990 ] ; then
+   cmd="$HOME/ecprof/current/ecprof --env debug,verbose $@"
+fi
+if [ $OMPI_COMM_WORLD_RANK -eq 9990 ] ; then
+   cmd="$HOME/ecprof/current/ecprof --env debug,verbose $@"
+fi
+
+# mpitrace settings...
+#export LD_PRELOAD=/gpfs/gpfs_stage1/walkup/mpitrace/src/libmpitrace.so
+#export LD_PRELOAD=/gpfs/gpfs_stage1/fthomas/mop_mpi_trace/src/libmpitrace.so
+#export PROFILE_ITIMERPROF=yes
+#export PROFILE_IMBALANCE=yes
+#export SYNC_COLLECTIVES=yes
+#export PROFILE_HPM=yes
+#export PROFILE_MALLOC=no
+#export PROFILE_XML=yes
+#export LD_PRELOAD=/gpfs/gpfs_stage1/walkup/mpitrace/spectrum_mpi/libmpihpm.so
+#export LD_PRELOAD=/gpfs/gpfs_stage1/fthomas/mpitrace/src/libmpihpm.so
+export VPROF_PROFILE=yes
+#export HPM_GROUP_LIST=all
+#export LD_PRELOAD=/gpfs/gpfs_stage1/fthomas/mpitrace/src/libmpihpm.so:$LD_PRELOAD
+#export LD_PRELOAD=/home/guest/WRF/conus_12km/sw/mpitrace/libmpitrace.so:$LD_PRELOAD
+
+exec $valgrind $launcher $numactl $gdb $cmd
+#
+

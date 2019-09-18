@@ -1,0 +1,26 @@
+# To run the input files
+
+## Requirement
+
+0) Contents of this root folder
+pseudo/						# generic input data, do not modify  
+szaf25_c03_pbesol-fullrela_444_90_v180.scf.in   # simulation setup CASE A (input)
+szaf25_c03_pbesol-scalrela_444_90_v180.scf.in   # simulation setup CASE B
+szaf25_c03_vdw-df-cx_444_90_v180.scf.in		# simulation setup CASE C
+
+
+1) Please make sure that path to the binary `pw.x` 
+   is searcherable from the `$PATH` variable. 
+   (Check by execute command `which pw.x`)
+
+
+
+2) Execute by submitting command
+
+$MPI pw.x -ni 1 -nk 1 -nt 1 < input.in > input.out
+
+example
+$MPI = "mpirun -np 16"
+$MPI pw.x -ni 1 -nk 1 -nt 1 < szaf25_c03_pbesol-fullrela_444_90_v180.scf.in > `test1.out`
+
+3) Check the result, which is written in `test1.out`

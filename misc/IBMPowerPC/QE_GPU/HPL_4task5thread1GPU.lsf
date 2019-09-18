@@ -1,0 +1,17 @@
+#BSUB -L /bin/bash
+#BSUB -J HPL_4task5thread
+#BSUB -o HPL_4task5thread.o.%J
+#BSUB -n 4
+#BSUB -R "span[ptile=4]"
+#BSUB -R "affinity[core(5):distribute=balance]"
+#BSUB -R "rusage[ngpus_excl_p=4]"
+#BSUB -q "s822lc_p100"
+#BSUB -x
+
+sudo nvidia-smi --compute-mode=DEFAULT
+
+module load smpi xlc xlf
+export XLSMPOPTS=spins=0:yields=0
+export ESSL_CUDA_HYBRID=yes
+export ESSL_CUDA_PIN=yes
+mpirun ./launch_4task5thread1GPU.sh ./xhpl

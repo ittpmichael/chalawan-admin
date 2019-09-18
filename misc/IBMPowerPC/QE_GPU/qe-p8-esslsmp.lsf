@@ -1,0 +1,16 @@
+#BSUB -L /bin/bash
+#BSUB -J "qe_p8_esslsmp"
+#BSUB -e "qe_p8_esslsmp.stderr.%J"
+#BSUB -o "qe_p8_esslsmp.stderr.%J"
+#BSUB -q "s822lc_p100"
+#BSUB -n 1
+#BSUB -R "span[ptile=1]"
+#BSUB -R "affinity[core(8)]"
+##BSUB -x
+#BSUB -R "rusage[ngpus_excl_p=1]"
+
+module load pgi/18.4 smpi cuda xlc xlf
+
+export LD_LIBRARY_PATH=/opt/ibm/lib:/gpfs/gpfs_gl4_16mb/RHEL/7.3/XL/Fortran/15.1.6/xlf/15.1.6/lib:$LD_LIBRARY_PATH
+
+mpirun /gpfs/gpfs_gl4_16mb/b8p113/qe-gpu-power8/bin/pw.x -ni 1 -nk 1 -nt 1 < /gpfs/gpfs_gl4_16mb/b8p113/QE_runfiles/szaf25_c03_benchmark/szaf25_c03_pbesol-fullrela_444_90_v180.scf.in > test1.out

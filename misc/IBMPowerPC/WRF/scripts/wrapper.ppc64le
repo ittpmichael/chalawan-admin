@@ -1,0 +1,87 @@
+#!/bin/bash
+#module unload xlf/16.1.0_beta7
+#module unload xlc/14.1.0_beta7
+function mkprocs {
+
+   bcpu=$1
+   ecpu=$2
+   stride=$3
+   cores=$4
+   ((blocks=ecpu-bcpu+1))
+   ((blocks=blocks/stride))
+   ((blocks=blocks/cores))
+   #echo blocks=$blocks
+   #echo cores=$cores
+   b=0
+   while [ $b -lt $blocks ] ; do
+      cid=0
+      while [ $cid -lt $cores ] ; do
+         ((cpu=bcpu+8*cid+stride*b))
+         echo -n ${comma}$cpu
+         comma=","
+         ((cid=cid+1))
+      done
+      ((b=b+1))
+   done
+}
+export IBM_SPECTRUM_MPI_LICENSE_ACCEPT=yes
+gdb=gdb
+gdb=
+valgrind=valgrind
+valgrind=
+export OMP_PROC_BIND=TRUE
+export TARGET_CPU_LIST=-1
+launcher=$SDIR/local/reporter/bin/launchOMPIOpenMP/bin/launchOMPIOpenMP
+launcher=
+((hwtperrank=160/OMPI_COMM_WORLD_LOCAL_SIZE))
+((bcpu=OMPI_COMM_WORLD_LOCAL_RANK*hwtperrank))
+((ecpu=bcpu+hwtperrank-1))
+((cores=ecpu-bcpu+1))
+((cores=cores/8))
+((stride=hwtperrank/OMP_NUM_THREADS))
+#export GOMP_CPU_AFFINITY=$bcpu-$ecpu:$stride
+#procs=$(mkprocs $bcpu $ecpu $stride $cores)
+export XLSMPOPTS="parthds=$OMP_NUM_THREADS:startproc=$bcpu:stride=$stride:spins=1:yields=1"
+#export XLSMPOPTS="parthds=$OMP_NUM_THREADS:procs=$procs:spins=1:yields=1"
+echo $bcpu:$ecpu:$XLSMPOPTS:$LD_LIBRARY_PATH:$LD_PRELOAD
+taskset -acp $$
+numactl="numactl --physcpubind=$bcpu-$ecpu "
+numactl=
+ulimit -s unlimited
+cmd="$@"
+if [ $OMPI_COMM_WORLD_RANK -eq 9990 ] ; then
+   cmd="perf record -o perf.data.$OMPI_COMM_WORLD_RANK $@"
+   cmd="perf stat                                      $@"
+fi
+if [ $OMPI_COMM_WORLD_RANK -eq 9990 ] ; then
+   cmd="$HOME/ecprof/current/ecprof --env debug,verbose $@"
+fi
+if [ $OMPI_COMM_WORLD_RANK -eq 9990 ] ; then
+   cmd="$HOME/ecprof/current/ecprof --env debug,verbose $@"
+fi
+
+# mpitrace settings...
+#export LD_PRELOAD=/gpfs/gpfs_stage1/walkup/mpitrace/src/libmpitrace.so
+#export LD_PRELOAD=/gpfs/gpfs_stage1/fthomas/mop_mpi_trace/src/libmpitrace.so
+#export PROFILE_ITIMERPROF=yes
+#export PROFILE_IMBALANCE=yes
+#export SYNC_COLLECTIVES=yes
+#export PROFILE_HPM=yes
+#export PROFILE_MALLOC=no
+#export PROFILE_XML=yes
+#export LD_PRELOAD=/gpfs/gpfs_stage1/walkup/mpitrace/spectrum_mpi/libmpihpm.so
+#export LD_PRELOAD=/gpfs/gpfs_stage1/fthomas/mpitrace/src/libmpihpm.so
+export VPROF_PROFILE=yes
+#export HPM_GROUP_LIST=all
+#export LD_PRELOAD=/gpfs/gpfs_stage1/fthomas/mpitrace/src/libmpihpm.so:$LD_PRELOAD
+#export LD_PRELOAD=/home/guest/WRF/conus_12km/sw/mpitrace/libmpitrace.so:$LD_PRELOAD
+
+cf=xl_
+export SDIR=/gpfs/gpfs_stage1/fthomas
+#export LD_LIBRARY_PATH=$SDIR/local/$cf/netcdf-4.4.1.1/lib:$SDIR/local/$cf/hdf5-1.8.18/lib:$SDIR/local/$cf/szip-2.1/lib:/opt/at11.0/lib:/opt/at11.0/lib64:/lib:/lib64:/usr/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$SDIR/local/$cf/netcdf-4.4.1.1/lib:$SDIR/local/$cf/hdf5-1.8.18/lib:$SDIR/local/$cf/szip-2.1/lib:/lib64:/usr/lib64:$LD_LIBRARY_PATH
+#cf=xl_
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$SDIR/local/$cf/netcdf-4.4.1.1/lib:$SDIR/local/$cf/hdf5-1.8.18/lib:$SDIR/local/$cf/szip-2.1/lib:/gpfs/gpfs_gl4_16mb/RHEL/7.4/XL/Fortran/15.1.7.0_beta3/xlf/15.1.7/lib
+
+exec $gdb $valgrind $launcher $numactl $cmd
+#

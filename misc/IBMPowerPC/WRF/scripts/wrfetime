@@ -1,0 +1,10 @@
+#!/bin/csh
+
+set infile=$1
+
+if ( $infile == "" ) set infile=rsl.out.0000
+if ( ! -f $infile ) set infile=rsl.out.0000
+
+grep 'Timing for main:' $infile | \
+    awk '{print $9}'
+
