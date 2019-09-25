@@ -23,16 +23,13 @@ function echoBreak() {
 function echoYN() {
   echo "Please answer Y or n."
 }
-function lowercase(){
-  return `echo "${1,,}"`
-}
 
 DIR_LOG="/root/log/createUser"
 
 echo "Log file has been created at $F_LOG"
 
 read -p "Please enter new user name: " NEW_U
-NEW_U=`lowercase $NEW_U`
+NEW_U=`echo "${NEW_U,,}"`
 F_NAME="`date +%y-%m-%d`_$NEW_U"
 F_LOG="$DIR_LOG/$F_NAME"
 touch $F_LOG
@@ -171,16 +168,16 @@ while true; do
       echoLog "$NEW_U needs storage on Lustre" >> $F_LOG;
       # TODO Neeed for group or personal?
       echo "Does \"$NEW_U\" need a shared directory or a personal directory?"
-      choice1="Shared directory"; choice2="Personal directory";
-      choice3="Other secondary group (enter it mannually)";
+      choice1="Shared_directory"; choice2="Personal_directory";
+      choice3="Other_secondary_group_(enter_it_mannually)";
       select choice in ${choice1} ${choice2} ${choice3}; do
         case $choice in
           ${choice1} ) \
             echoLog "\"$choice1\" is selected";
-            NEW_LDIR=$NEW_U; break;;
+            export NEW_LDIR=$NEW_G; break;;
           ${choice2} ) \
             echoLog "\"$choice2\" is selected";
-            NEW_LDIR=$NEW_G; break;;
+            export NEW_LDIR=$NEW_U; break;;
           ${choice3} ) \
             echoLog "\"$choice3\" is selected";
             echo "Please enter group name from: "
@@ -214,7 +211,7 @@ while true; do
         INODE_S=`echo "scale=0; $SIZE_S*100000" | bc`;
       fi;
       #=====
-      lfs setquota -p $PID -b ${SIZE_H}T -B ${SIZE_S}T -i $INODE_S \
+      lfs setquota -p $PID -b ${SIZE_S}T -B ${SIZE_H}T -i $INODE_S \
         -I $INODE_H /lustre/$NEW_LDIR;
       echoLog "The quota has been set with $SIZE_S($SIZE_H) TB";
       echoLog "and inode $INODE_S($INODE_H) files";
